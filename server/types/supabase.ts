@@ -1,0 +1,16 @@
+export interface Database {
+  public: {
+    Tables: Record<string, {
+      Row: Record<string, unknown>
+      Insert: Record<string, unknown>
+      Update: Record<string, unknown>
+      Relationships: never[]
+    }>
+    Views: Record<string, {
+      Row: Record<string, unknown>
+    }>
+    Functions: Record<string, never>
+    Enums: Record<string, never>
+    CompositeTypes: Record<string, never>
+  }
+}

@@ -58,3 +58,53 @@ export interface Range {
   start: Date
   end: Date
 }
+
+export interface AuraMember {
+  id: string
+  name: string
+  startingAura: number
+  currentAura: number
+  deltaTotal: number
+  deltaToday: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface AuraEvent {
+  id: string
+  memberId: string
+  memberName: string
+  delta: number
+  reason: string
+  occurredAt: string
+  createdAt: string
+}
+
+export interface AuraOverview {
+  members: AuraMember[]
+  recentEvents: AuraEvent[]
+  teamAura: number
+  teamDeltaToday: number
+  rangeDelta: number
+}
+
+export interface AuraTimelinePoint {
+  date: string
+  values: Record<string, number>
+  teamTotal: number
+}
+
+export interface AuraTimeline {
+  members: Array<{
+    id: string
+    name: string
+  }>
+  points: AuraTimelinePoint[]
+}
+
+export interface CreateAuraEventPayload {
+  memberId: string
+  delta: number
+  reason: string
+  occurredAt?: string
+}

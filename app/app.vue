@@ -13,20 +13,20 @@ useHead({
     { rel: 'icon', href: '/favicon.ico' }
   ],
   htmlAttrs: {
-    lang: 'en'
+    lang: 'fr'
   }
 })
 
-const title = 'Nuxt Dashboard Template'
-const description = 'A professional dashboard template built with Nuxt UI, featuring multiple pages, data visualization, and comprehensive management capabilities for creating powerful admin interfaces.'
+const title = 'Aura Monitor'
+const description = 'Tableau de bord Nuxt pour suivre l aura des membres, enregistrer les interactions et visualiser l evolution journaliere.'
 
 useSeoMeta({
   title,
   description,
   ogTitle: title,
   ogDescription: description,
-  ogImage: 'https://ui.nuxt.com/assets/templates/nuxt/dashboard-light.png',
-  twitterImage: 'https://ui.nuxt.com/assets/templates/nuxt/dashboard-light.png',
+  ogImage: '/favicon.ico',
+  twitterImage: '/favicon.ico',
   twitterCard: 'summary_large_image'
 })
 </script>

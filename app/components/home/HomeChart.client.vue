@@ -1,73 +1,90 @@
 <script setup lang="ts">
-import { eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, format } from 'date-fns'
-import { VisXYContainer, VisLine, VisAxis, VisArea, VisCrosshair, VisTooltip } from '@unovis/vue'
-import type { Period, Range } from '~/types'
+import { format } from 'date-fns'
+import { VisXYContainer, VisLine, VisAxis, VisCrosshair, VisTooltip } from '@unovis/vue'
+import type { AuraTimeline } from '~/types'
 
 const cardRef = useTemplateRef<HTMLElement | null>('cardRef')
 
 const props = defineProps<{
-  period: Period
-  range: Range
+  timeline: AuraTimeline
+  isLoading?: boolean
 }>()
 
 type DataRecord = {
   date: Date
-  amount: number
+  values: Record<string, number>
 }
 
 const { width } = useElementSize(cardRef)
 
-const data = ref<DataRecord[]>([])
+const memberPalette = ['#2563eb', '#dc2626', '#16a34a', '#ea580c', '#9333ea', '#0891b2', '#db2777', '#0d9488']
 
-watch([() => props.period, () => props.range], () => {
-  const dates = ({
-    daily: eachDayOfInterval,
-    weekly: eachWeekOfInterval,
-    monthly: eachMonthOfInterval
-  } as Record<Period, typeof eachDayOfInterval>)[props.period](props.range)
+const membersWithColors = computed(() => {
+  return props.timeline.members.map((member, index) => ({
+    ...member,
+    color: memberPalette[index % memberPalette.length]!
+  }))
+})
 
-  const min = 1000
-  const max = 10000
-
-  data.value = dates.map(date => ({ date, amount: Math.floor(Math.random() * (max - min + 1)) + min }))
-}, { immediate: true })
+const data = computed<DataRecord[]>(() => {
+  return props.timeline.points.map((point) => {
+    return {
+      date: new Date(point.date),
+      values: point.values
+    }
+  })
+})
 
 const x = (_: DataRecord, i: number) => i
-const y = (d: DataRecord) => d.amount
+const memberY = (memberId: string) => (d: DataRecord) => d.values[memberId] ?? 0
 
-const total = computed(() => data.value.reduce((acc: number, { amount }) => acc + amount, 0))
+const formatNumber = new Intl.NumberFormat('fr-FR').format
+const yTicks = (value: number) => formatNumber(Math.round(value))
 
-const formatNumber = new Intl.NumberFormat('en', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format
+const currentValues = computed<Record<string, number>>(() => {
+  if (!props.timeline.points.length) {
+    return {}
+  }
 
-const formatDate = (date: Date): string => {
-  return ({
-    daily: format(date, 'd MMM'),
-    weekly: format(date, 'd MMM'),
-    monthly: format(date, 'MMM yyy')
-  })[props.period]
-}
+  return props.timeline.points[props.timeline.points.length - 1]!.values
+})
+
+const formatDate = (date: Date): string => format(date, 'd MMM')
 
 const xTicks = (i: number) => {
-  if (i === 0 || i === data.value.length - 1 || !data.value[i]) {
+  if (i === 0 || i === data.value.length - 1 || !data.value[i] || i % 2 !== 0) {
     return ''
   }
 
   return formatDate(data.value[i].date)
 }
 
-const template = (d: DataRecord) => `${formatDate(d.date)}: ${formatNumber(d.amount)}`
+const template = (d: DataRecord) => {
+  const memberValues = membersWithColors.value
+    .map(member => `${member.name}: ${formatNumber(d.values[member.id] ?? 0)}`)
+    .join(' | ')
+
+  return `${formatDate(d.date)} - ${memberValues}`
+}
 </script>
 
 <template>
   <UCard ref="cardRef" :ui="{ root: 'overflow-visible', body: '!px-0 !pt-0 !pb-3' }">
     <template #header>
-      <div>
-        <p class="text-xs text-muted uppercase mb-1.5">
-          Revenue
-        </p>
-        <p class="text-3xl text-highlighted font-semibold">
-          {{ formatNumber(total) }}
-        </p>
+      <p class="text-xs text-muted uppercase mb-2">
+        Evolution journaliere de tous les membres
+      </p>
+
+      <div class="flex flex-wrap gap-2">
+        <div
+          v-for="member in membersWithColors"
+          :key="member.id"
+          class="inline-flex items-center gap-2 rounded-md border border-default px-2 py-1 text-xs"
+        >
+          <span class="size-2 rounded-full" :style="{ backgroundColor: member.color }" />
+          <span class="text-highlighted">{{ member.name }}</span>
+          <span class="text-muted">{{ formatNumber(currentValues[member.id] ?? 0) }}</span>
+        </div>
       </div>
     </template>
 
@@ -78,15 +95,11 @@ const template = (d: DataRecord) => `${formatDate(d.date)}: ${formatNumber(d.amo
       :width="width"
     >
       <VisLine
+        v-for="member in membersWithColors"
+        :key="member.id"
         :x="x"
-        :y="y"
-        color="var(--ui-primary)"
-      />
-      <VisArea
-        :x="x"
-        :y="y"
-        color="var(--ui-primary)"
-        :opacity="0.1"
+        :y="memberY(member.id)"
+        :color="member.color"
       />
 
       <VisAxis
@@ -95,13 +108,22 @@ const template = (d: DataRecord) => `${formatDate(d.date)}: ${formatNumber(d.amo
         :tick-format="xTicks"
       />
 
+      <VisAxis
+        type="y"
+        :tick-format="yTicks"
+      />
+
       <VisCrosshair
-        color="var(--ui-primary)"
+        color="var(--ui-text-muted)"
         :template="template"
       />
 
       <VisTooltip />
     </VisXYContainer>
+
+    <div v-if="!timeline.points.length && !isLoading" class="px-6 pb-3 text-sm text-muted">
+      Aucun evenement dans cette periode.
+    </div>
   </UCard>
 </template>
 
